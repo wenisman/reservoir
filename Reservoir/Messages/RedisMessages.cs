@@ -3,29 +3,6 @@ using System.Collections.Generic;
 
 namespace Reservoir.Messages
 {
-
-
-    public class ExceptionResult : Message
-    {
-        public Exception Exception { get; private set; }
-
-        public ExceptionResult(Exception exception, string id) : base(id)
-        {
-            Exception = exception;
-        }
-    }
-
-    public class SuccessResult : Message
-    {
-        public object Result { get; private set; }
-
-        public SuccessResult(object result, string id) : base(id)
-        {
-            Result = result;
-        }
-    }
-
-
     public class SetStrings : Message
     {
         public Dictionary<string, string> Data { get; private set; }

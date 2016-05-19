@@ -25,6 +25,8 @@ namespace Reservoir.Actors
         {
             Receive<SetStrings>(message => SaveStrings(message));
             Receive<GetStrings>(message => GetStrings(message));
+            Receive<ExceptionResult>(message => Sender.Tell(message));
+            Receive<SuccessResult>(message => Sender.Tell(message));
         }
 
 
@@ -35,7 +37,8 @@ namespace Reservoir.Actors
                     .Select(value => new KeyValuePair<RedisKey, RedisValue>(value.Key, value.Value))
                     .ToArray();
 
-            _database.StringSetAsync(data)
+            _database
+                .StringSetAsync(data)
                 .ContinueWith((task) => {
                     if ((task.IsFaulted || task.IsCanceled) || !task.Result)
                     {
@@ -54,7 +57,8 @@ namespace Reservoir.Actors
         {
             var data = message.Keys.Select(key => (RedisKey)key).ToArray();
 
-            _database.StringGetAsync(data)
+            _database
+                .StringGetAsync(data)
                 .ContinueWith((task) =>
                 {
                     if (task.IsFaulted || task.IsCanceled)
@@ -63,17 +67,23 @@ namespace Reservoir.Actors
                     }
                     else
                     {
-                        var output = new Dictionary<string, string>();
-                        for (int index = 0; index < message.Keys.Length; index++)
-                        {
-                            output.Add(message.Keys[index], task.Result[index]);
-                        }
-
-                        new SuccessResult(output, message.Id);
+                        new SuccessResult(CreateDictionary(message.Keys, task.Result), message.Id);
                     }
                 }, TaskContinuationOptions.AttachedToParent & TaskContinuationOptions.ExecuteSynchronously)
                 .PipeTo(Self);
         }
+
+
+        private Dictionary<string, string> CreateDictionary(string[] keys, RedisValue[] values)
+        {
+            var output = new Dictionary<string, string>();
+            for (int index = 0; index < values.Length; index++)
+            {
+                output.Add(keys[index], values[index]);
+            }
+
+            return output;
+        } 
 
     }
 }

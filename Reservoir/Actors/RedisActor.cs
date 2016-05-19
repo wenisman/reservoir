@@ -25,8 +25,7 @@ namespace Reservoir.Actors
         {
             Receive<SetStrings>(message => SaveStrings(message));
             Receive<GetStrings>(message => GetStrings(message));
-            Receive<ExceptionResult>(message => Sender.Tell(message));
-            Receive<SuccessResult>(message => Sender.Tell(message));
+            Receive<ActionComplete>(message => Sender.Tell(message));
         }
 
 
@@ -40,14 +39,18 @@ namespace Reservoir.Actors
             _database
                 .StringSetAsync(data)
                 .ContinueWith((task) => {
-                    if ((task.IsFaulted || task.IsCanceled) || !task.Result)
-                    {
-                        new ExceptionResult(task.Exception, message.Id);
-                    }
-                    else
-                    {
-                        new SuccessResult(true, message.Id);
-                    }
+					if ((task.IsFaulted || task.IsCanceled))
+					{
+						new ActionComplete(null, task.Exception, message.Id);
+					}
+					else if (!task.Result)
+					{
+						new ActionComplete(null, new System.Exception("Unable to save to redis"), message.Id);
+					}
+					else
+					{
+						new ActionComplete(true, null, message.Id);
+					}
                 }, TaskContinuationOptions.AttachedToParent & TaskContinuationOptions.ExecuteSynchronously)
                 .PipeTo(Self);
         }
@@ -63,11 +66,11 @@ namespace Reservoir.Actors
                 {
                     if (task.IsFaulted || task.IsCanceled)
                     {
-                        new ExceptionResult(task.Exception, message.Id);
-                    }
-                    else
+						new ActionComplete(null, task.Exception, message.Id);
+					}
+					else
                     {
-                        new SuccessResult(CreateDictionary(message.Keys, task.Result), message.Id);
+                        new ActionComplete(CreateDictionary(message.Keys, task.Result), null, message.Id);
                     }
                 }, TaskContinuationOptions.AttachedToParent & TaskContinuationOptions.ExecuteSynchronously)
                 .PipeTo(Self);

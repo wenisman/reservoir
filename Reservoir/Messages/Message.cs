@@ -26,6 +26,22 @@ namespace Reservoir.Messages
     }
 
 
+	public class ActionComplete : Message
+	{
+		public Exception Exception { get; private set; }
+
+		public object Result { get; private set; }
+
+		public ActionComplete(object result, Exception exception, string id) : base(id)
+		{
+			Result = result;
+			Exception = exception;
+		}
+
+	}
+
+
+
     public class ExceptionResult : Message
     {
         public Exception Exception { get; private set; }

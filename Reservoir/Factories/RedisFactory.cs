@@ -1,35 +1,30 @@
 ﻿using StackExchange.Redis;
-
+using System;
 
 namespace Reservoir.Factories
 {
-    public class RedisFactory
+
+    public interface IRedisFactory
+    {
+        ConnectionMultiplexer Multiplexer { get; }
+    }
+
+
+    public class RedisFactory : IRedisFactory, IDisposable
     {
 
-        public ConnectionMultiplexer Multiplexer;
-        private static RedisFactory _instance;
+        public ConnectionMultiplexer Multiplexer { get; private set; }
 
-        public static RedisFactory Instance
-        {
-            get
-            {
-                if (_instance == null)
-                {
-                    _instance = new RedisFactory();
-                }
-
-                return _instance;
-            }
-        }
-
-
-        protected RedisFactory()
+        public RedisFactory(string serverConnection)
         {
             // TODO : handle connection errors etc
             // TODO : read configuration properties
-            Multiplexer = ConnectionMultiplexer.Connect("192.168.33.20:7000");
+            Multiplexer = ConnectionMultiplexer.Connect(serverConnection);
         }
 
-
+        public void Dispose()
+        {
+            Multiplexer.Close();
+        }
     }
 }

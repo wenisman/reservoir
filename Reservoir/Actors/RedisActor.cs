@@ -13,12 +13,20 @@ namespace Reservoir.Actors
     public class RedisActor : ReceiveActor
     {
         private IDatabase _database;
+        private IRedisFactory _redis;
+
+
+        public RedisActor(IRedisFactory redis)
+        {
+            _redis = redis;
+        }
 
         protected override void PreStart()
         {
             base.PreStart();
-            _database = RedisFactory.Instance.Multiplexer.GetDatabase();
-       }
+
+            _database = _redis.Multiplexer.GetDatabase();
+        }
 
 
         private void ReceiveMessage()
@@ -77,7 +85,7 @@ namespace Reservoir.Actors
         }
 
 
-        private Dictionary<string, string> CreateDictionary(string[] keys, RedisValue[] values)
+        private IDictionary<string, string> CreateDictionary(string[] keys, RedisValue[] values)
         {
             var output = new Dictionary<string, string>();
             for (int index = 0; index < values.Length; index++)

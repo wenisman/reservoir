@@ -12,22 +12,14 @@ namespace Reservoir.Actors
 {
     public class RedisActor : ReceiveActor
     {
-        private IDatabase _database;
         private IRedisFactory _redis;
 
 
         public RedisActor(IRedisFactory redis)
         {
             _redis = redis;
+            ReceiveMessage();
         }
-
-        protected override void PreStart()
-        {
-            base.PreStart();
-
-            _database = _redis.Multiplexer.GetDatabase();
-        }
-
 
         private void ReceiveMessage()
         {
@@ -44,23 +36,24 @@ namespace Reservoir.Actors
                     .Select(value => new KeyValuePair<RedisKey, RedisValue>(value.Key, value.Value))
                     .ToArray();
 
-            _database
+            _redis
+                .Database
                 .StringSetAsync(data)
-                .ContinueWith((task) => {
+                .ContinueWith(task => {
 					if ((task.IsFaulted || task.IsCanceled))
 					{
-						new ActionComplete(null, task.Exception, message.Id);
+						return new ActionComplete(null, task.Exception, message.Id);
 					}
 					else if (!task.Result)
 					{
-						new ActionComplete(null, new System.Exception("Unable to save to redis"), message.Id);
+						return new ActionComplete(null, new System.Exception("Unable to save to redis"), message.Id);
 					}
 					else
 					{
-						new ActionComplete(true, null, message.Id);
+						return new ActionComplete(true, null, message.Id);
 					}
                 }, TaskContinuationOptions.AttachedToParent & TaskContinuationOptions.ExecuteSynchronously)
-                .PipeTo(Self);
+                .PipeTo(Sender);
         }
 
 
@@ -68,17 +61,18 @@ namespace Reservoir.Actors
         {
             var data = message.Keys.Select(key => (RedisKey)key).ToArray();
 
-            _database
+            _redis
+                .Database
                 .StringGetAsync(data)
                 .ContinueWith((task) =>
                 {
                     if (task.IsFaulted || task.IsCanceled)
                     {
-						new ActionComplete(null, task.Exception, message.Id);
+						return new ActionComplete(null, task.Exception, message.Id);
 					}
 					else
                     {
-                        new ActionComplete(CreateDictionary(message.Keys, task.Result), null, message.Id);
+                        return new ActionComplete(CreateDictionary(message.Keys, task.Result), null, message.Id);
                     }
                 }, TaskContinuationOptions.AttachedToParent & TaskContinuationOptions.ExecuteSynchronously)
                 .PipeTo(Self);

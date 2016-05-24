@@ -3,6 +3,9 @@ using System.Collections.Generic;
 
 namespace Reservoir.Messages
 {
+
+    #region Set Commands
+
     public class SetStrings : Message
     {
         public IDictionary<string, string> Data { get; private set; }
@@ -15,16 +18,20 @@ namespace Reservoir.Messages
 
     public class SetHash : Message
     {
-        public IDictionary<string, object> Data { get; private set; }
+        public IDictionary<string, string> Data { get; private set; }
 
         public string Key { get; private set; }
 
-        public SetHash(string key, IDictionary<string, object> data, string id = "") : base()
+        public SetHash(string key, IDictionary<string, string> data, string id = "") : base()
         {
             Data = data;
         }
     }
 
+    #endregion
+
+
+    #region Get Commands
 
     public class GetStrings : Message
     {
@@ -37,4 +44,5 @@ namespace Reservoir.Messages
         }
     }
 
+    #endregion 
 }

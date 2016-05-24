@@ -25,7 +25,6 @@ namespace Reservoir.Actors
         {
             Receive<SetStrings>(message => SaveStrings(message));
             Receive<GetStrings>(message => GetStrings(message));
-            Receive<ActionComplete>(message => Sender.Tell(message));
         }
 
 
@@ -42,16 +41,39 @@ namespace Reservoir.Actors
                 .ContinueWith(task => {
 					if ((task.IsFaulted || task.IsCanceled))
 					{
-						return new ActionComplete(null, task.Exception, message.Id);
+						return new ActionComplete(false, task.Exception, message.Id);
 					}
 					else if (!task.Result)
 					{
-						return new ActionComplete(null, new System.Exception("Unable to save to redis"), message.Id);
+						return new ActionComplete(false, new System.Exception("Unable to save to redis"), message.Id);
 					}
 					else
 					{
 						return new ActionComplete(true, null, message.Id);
 					}
+                }, TaskContinuationOptions.AttachedToParent & TaskContinuationOptions.ExecuteSynchronously)
+                .PipeTo(Sender);
+        }
+
+
+        private void SaveHashes(SetHash message)
+        {
+            var data = message.Data.Select(item => new HashEntry(item.Key, item.Value)).ToArray();
+
+
+            _redis
+                .Database
+                .HashSetAsync(message.Key, data)
+                .ContinueWith(task =>
+                {
+                    if ((task.IsFaulted || task.IsCanceled))
+                    {
+                        return new ActionComplete(false, task.Exception, message.Id);
+                    }
+                    else
+                    {
+                        return new ActionComplete(true, null, message.Id);
+                    }
                 }, TaskContinuationOptions.AttachedToParent & TaskContinuationOptions.ExecuteSynchronously)
                 .PipeTo(Sender);
         }

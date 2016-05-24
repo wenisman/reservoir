@@ -15,7 +15,7 @@ namespace Reservoir.Messages
         {
             if (string.IsNullOrEmpty(id))
             {
-                id = new Guid().ToString();
+                id = Guid.NewGuid().ToString();
             }
 
             Id = id;
@@ -40,25 +40,4 @@ namespace Reservoir.Messages
 
 	}
 
-
-
-    public class ExceptionResult : Message
-    {
-        public Exception Exception { get; private set; }
-
-        public ExceptionResult(Exception exception, string id) : base(id)
-        {
-            Exception = exception;
-        }
-    }
-
-    public class SuccessResult : Message
-    {
-        public object Result { get; private set; }
-
-        public SuccessResult(object result, string id) : base(id)
-        {
-            Result = result;
-        }
-    }
 }

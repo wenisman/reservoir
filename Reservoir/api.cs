@@ -17,6 +17,7 @@ namespace Reservoir
 
         private ActorSystem _cacheSystem;
         private IActorRef _redisActor;
+        private IActorRef _memoryActor;
 
         public api()
         {
@@ -25,7 +26,12 @@ namespace Reservoir
 
         public bool Set(IDictionary<string, string> keyValues)
         {
-            _redisActor.Tell(new SetStrings(keyValues));
+            var message = new SetStrings(keyValues);
+
+            var redisTask = _redisActor.Ask(message);
+            var memoryTask = _memoryActor.Ask(message);
+
+            Task.WaitAll(redisTask, memoryTask);
 
             return true;
         }
@@ -34,6 +40,7 @@ namespace Reservoir
         {
             _cacheSystem = ActorSystem.Create("ReservoirSystem");
             _redisActor = _cacheSystem.ActorOf(_cacheSystem.DI().Props<RedisActor>(), "redisActor");
+            _memoryActor = _cacheSystem.ActorOf(Props.Create<MemoryActor>(), "memoryActor");
         }
 
 
